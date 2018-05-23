@@ -305,9 +305,8 @@ paste((0.04 / 3600) * 260337, "hours")
 ## Industrialising the Solution
 ```{r}
 
-f_of_f_small_sample <-
-    ego(igraph_connections, order = distance, mindist = distance, mode = "all")
-  
+f_of_f_small_sample <- ego(members_small_sample_graph, order = 2, mindist = 2, mode = "all")
+
 
 get_friends_of_friends <- function(igraph_connections, friends_of_friends_vertices) {
   # takes an igraph object of all connections and a list of vertices of all friends of friends
@@ -332,11 +331,11 @@ tic("Sample full calculation")
 f_of_f_small_sample_df <-
   f_of_f_small_sample_df %>% 
   mutate(count_common_connections = 
-           map2_int(member_id, friend_of_friend, calc_common_conns, members_dt))
+           map2_int(member_id, friend_of_friend, calc_num_common_conns, members_dt))
 toc()
 
-calc_common_conns <- function(friend, f_of_f, member_conns) {
-  sum(member_conns[member_id == friend]$connected_member_id %in%
+calc_num_common_conns <- function(member, f_of_f, member_conns) {
+  sum(member_conns[member_id == member]$connected_member_id %in%
         member_conns[member_id == f_of_f]$connected_member_id,
     na.rm = TRUE)
 }

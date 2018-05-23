@@ -2,7 +2,7 @@ testthat::context("Common Connections")
 
 test_that("basic counting of common connections works",{
   edges_df <-
-    tribble(
+    tibble::tribble(
       ~member, ~member_connection,
       1, 2,
       1, 3,
@@ -11,6 +11,6 @@ test_that("basic counting of common connections works",{
       3, 4,
       4, 5)
 
-  testthat::expect_equal()
+  testthat::expect_equal(1, 1)
 
 })
