@@ -22,6 +22,7 @@ Blah
 ```{r libraries, message = FALSE, warning = FALSE}
 library(tidyverse)
 library(igraph)
+library(tictoc)
 ```
 
 
@@ -31,32 +32,43 @@ library(igraph)
 
 
 ```{r import}
-members_graph <- 
-  read_csv("./linkedin_data/common_connection_200k.csv") %>% 
-  sample_n(10000) %>% # take a sample
+
+members_df <-
+  read_csv("./linkedin_data/common_connection_200k.csv")
+  
+members_sample_df <-
+  members_df %>% sample_n(1000000) # take a sample
+
+members_small_sample_df <-
+  members_df %>% sample_n(100000) # take a sample
+
+members_sample_graph <- 
+  members_sample_df %>% 
+  graph_from_data_frame(directed = FALSE)
+
+members_small_sample_graph <- 
+  members_small_sample_df %>% 
   graph_from_data_frame(directed = FALSE)
 
 ```
 
 ## Exploration
 ```{r raw exploration}
-print("Number of vertices:")
-vertex_attr(members_graph)$name %>% unique() %>% length()
+print("Number of unique vertices:")
+vertex_attr(members_sample_graph)$name %>% unique() %>% length()
 
 ```
 
-
+Playing around with igraph we can use the graph to extract the original data frame:
 ```{r explo 1}
-edges <- get.edgelist(members_graph) 
-
 edges_df <-
-  edges %>% 
+  get.edgelist(members_sample_graph) %>% 
   as.tibble() %>% 
   rename(member = V1, member_conn = V2)
 
 edges_df %>% arrange(member, member_conn)
 
-rm(edges)
+
 ```
 
 
@@ -64,52 +76,197 @@ rm(edges)
 
 ```
 
-## Exploration
-Algorithm in English:
-1. Get Member
-2. Get Member's Connection
-3. For Each Connection, Get List of Connections Connections
-4. Check If Connections Connections Are In Member's Connections
-5. If Yes: Increment & Store Counter for Member vs Connections
-6. Repeat 1-5 Until All Relationships of Friends of Friends Calculated
+## Algorithm 1
+Algorithm 1 (finds node with most ) in English:
+1. Get Member.
+2. Get Member's Connections.
+3. For Each Connection, Get List of Connections Connections.
+4. Check If Connections Connections Are In Member's Connections.                
+5. If Yes: Increment & Store Counter for Member vs Connections.
+6. Repeat 1-5 Until All Membership Pairs Are Accounted For.
 
 Number of unique member names vs total number of member names in sample:
 ```{r exploration 1}
 edges_df$member %>% unique() %>% length()
 edges_df$member %>% length()
+rm(edges_df)
+
 ```
 
-
+The following bit will print for each member the number of friends who's friends are also friends of the member:
 ```{r exploration 2}
+first_member <- 
+  members_df %>% filter(member_id == "150503")
 
+for(conn in first_member$connected_member_id) {
+  conn_conns <- 
+    members_df %>% filter(member_id == conn)
+  
+  # print(conn_conns)
+  
+  (conn_conns$connected_member_id %in%
+    first_member$connected_member_id) %>% 
+    sum(na.rm = TRUE) %>% print()
+}
 ```
 
-
+## Algorithm 2
+1. Get original member.
+2. Get list of friends of member.
+3. For each member in dataset (minus orignal member and direct friends of original member) check if friends of member are in the list of friends of the original member.
+4. 
 ```{r exploration 3}
+tictoc::tic("Total")
+tictoc::tic("Create Nested data.frame")
+
+nested_sample_df <- 
+  members_sample_df %>% nest(connected_member_id) %>% 
+  mutate(connected_member_ids = 
+           map(data, function(x) x$connected_member_id) ) %>% 
+  select(-data)
+tictoc::toc()
+
+first_member <- nested_sample_df %>% filter(member_id == "67890")
+tictoc::tic("Calculate Number of Connections")
+
+for(friends in first_member$connected_member_ids[[1]]){
+  sample_less_friends <-
+    nested_sample_df %>% 
+    filter(!(member_id %in% union(first_member$member_id,
+                                  friends)))
+  
+  sample_less_friends <- 
+    sample_less_friends %>% 
+    mutate(common_friends = map2_int(connected_member_ids, friends,
+                                 function(x, y) {sum(x %in% y, na.rm = TRUE)} ))
+}
+
+tictoc::toc()
+tictoc::toc()
+```
+
+
+```{r algo 2 create nested df}
+create_nested_member_dataframe <- function(member_data) {
+  member_data %>% nest(connected_member_id) %>% 
+    mutate(connected_member_ids = 
+             map(data, function(x) x$connected_member_id) ) %>% 
+    select(-data)
+}
+
+nested_members_df <- create_nested_member_dataframe(members_df)
 
 ```
 
 
-```{r summary}
+```{r}
+calculate_num_common_friends <- function(member_data, member_name){
+  
+  first_member <- member_data %>% filter(member_id == member_name)
+  
+  for(friends in first_member$connected_member_ids[[1]]){
+    sample_less_friends <-
+      member_data %>% 
+      filter(!(member_id %in% union(first_member$member_id, friends)))
+    
+    sample_less_friends <- 
+      sample_less_friends %>% 
+      mutate(common_friends = map2_int(connected_member_ids, friends,
+                                       function(x, y) {sum(x %in% y, na.rm = TRUE)} ))
+  }
+  
+  sample_less_friends
+}
+
+tictoc::tic("Bad Algo 2")
+calculate_num_common_friends(nested_members_df, "67890")
+tictoc::toc()
+
+```
+
+## Algorithm 3
+Attempting to find friends of friends for a large sample (about 1*10^6 edges) took well over 2 hours to compute using the igraph package to calculate the neighbourhoods. I suspect the computation time is worse than O(n) so it could take over a day to complete this calculation for the full dataset.
+
+Worryingly, the `setdiff` between degree 1 and 2 neighbourhoods is returning the empty set which seems very wrong. Given we have sampled about 1/10 of the full dataset it seems unlikely that we would not find any friends of friends!
+```{r algo 3 igraph, eval=FALSE}
+tictoc::tic("Total")
+tictoc::tic("1st Degree Neighbourhood")
+neighbours_1_deg <- unlist(neighborhood(members_sample_graph, 1))
+tictoc::toc()
+tictoc::tic("2nd Degree Neighbourgood")
+neighbours_2_deg <- unlist(neighborhood(members_sample_graph, 2))
+tictoc::toc()
+tictoc::tic("Friends of Friends")
+second_deg_conns <- setdiff(neighbours_2_deg, neighbours_1_deg)
+tictoc::toc()
+tictoc::toc()
+```
+
+## Algorithm 4
+1. Using the igraph built in ego functions to calculate friends of friends for each vertex (member)
+2. Convert to data.frame of edges (connections) for memory efficiency.
+3. Remove empty and duplicate relationships.
+3. For each friend of friend of each vertex, compare list of direct connections to original vertex's connections and sum any matches.
+4. Sort by count of matches or just retrieve the maximum.
+```{r}
+tic("Create friend of friend list")
+f_of_f_small_sample <- ego(members_small_sample_graph, order = 2, mindist = 2, mode = "all")
+toc()
+
+# tic("Create friend of friend list")
+# f_of_f_sample <- ego(members_sample_graph, order = 2, mindist = 2, mode = "all")
+# toc()
 
 ```
 
 
 ```{r}
 
+tic("Create fof dataframe")
+tic("Create nested df")
+f_of_f_small_sample_df <- 
+  tibble(member_id = V(members_small_sample_graph)$name,
+         friend_of_friend = map(f_of_f_small_sample, function(x) x$name))
+toc()
+
+tic("Unnest df")
+f_of_f_small_sample_df <- unnest(f_of_f_small_sample_df, friend_of_friend)
+toc()
+
+# Direction does not matter here.
+tic("Remove duplicate relationships")
+f_of_f_small_sample_df <-
+  f_of_f_small_sample_df %>% 
+  mutate(sorted_set = map2_chr(member_id, friend_of_friend, 
+                               function(x, y) paste(sort(c(x, y)), collapse = "")
+                           )
+         ) %>% 
+  distinct(sorted_set, .keep_all = TRUE) %>% 
+  select(-sorted_set)
+
+toc()
+toc()
 ```
 
+Now we have a unique row for each friend of a friend connection. We can use this to look up the original member's direct connections and the friend of friend's direct connections, and count the amount of matches. Key to this will be speed of lookup of the direct connections.
+
+```{r members lookup benchmark}
+
+tic("Members lookup dplyr")
+members_df %>% 
+  filter(member_id == f_of_f_small_sample_df[1, ]$member_id)
+toc()
+
+
+tic("Members lookup base")
+members_df[members_df$member_id == f_of_f_small_sample_df[1, ]$member_id, ]
+toc()
+
+```
+
+This is untenable for a large number of calculations. Let's try using the indexing feature from `data.table`.
 
 ```{r}
 
 ```
 
-
-```{r}
-
-```
-
-
-```{r}
-
-```
