@@ -304,24 +304,29 @@ paste((0.04 / 3600) * 260337, "hours")
 
 ## Industrialising the Solution
 ```{r}
-f_of_f_small_sample <- ego(members_small_sample_graph, order = 2, mindist = 2, mode = "all")
 
-f_of_f_small_sample_df <- 
-  tibble(member_id = V(members_small_sample_graph)$name,
-         friend_of_friend = map(f_of_f_small_sample, function(x) x$name))
+f_of_f_small_sample <-
+    ego(igraph_connections, order = distance, mindist = distance, mode = "all")
+  
 
-f_of_f_small_sample_df <- unnest(f_of_f_small_sample_df, friend_of_friend)
+get_friends_of_friends <- function(igraph_connections, friends_of_friends_vertices) {
+  # takes an igraph object of all connections and a list of vertices of all friends of friends
+  # calculated by igraph::ego(igraph_obj, order = 2, mindist = 2, mode = "all")
+  friends_of_friends_df <- 
+    tibble(member_id = V(igraph_connections)$name,
+           friend_of_friend = map(friends_of_friends_vertices, function(x) x$name))
+  
+  friends_of_friends_df <- unnest(friends_of_friends_df, friend_of_friend)
+  
+  friends_of_friends_df %>% 
+    mutate(sorted_set = map2_chr(member_id, friend_of_friend, 
+                                 function(x, y) paste(sort(c(x, y)), collapse = ""))) %>% 
+    distinct(sorted_set, .keep_all = TRUE) %>% 
+    select(-sorted_set) %>% 
+    mutate_all(as.integer)
+}
 
-f_of_f_small_sample_df <-
-  f_of_f_small_sample_df %>% 
-  mutate(sorted_set = map2_chr(member_id, friend_of_friend, 
-                               function(x, y) paste(sort(c(x, y)), collapse = "")
-                           )
-         ) %>% 
-  distinct(sorted_set, .keep_all = TRUE) %>% 
-  select(-sorted_set) %>% 
-  mutate_all(as.integer)
-
+get_friends_of_friends(members_small_sample_graph, f_of_f_small_sample)
 
 tic("Sample full calculation")
 f_of_f_small_sample_df <-
