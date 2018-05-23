@@ -242,7 +242,8 @@ f_of_f_small_sample_df <-
                            )
          ) %>% 
   distinct(sorted_set, .keep_all = TRUE) %>% 
-  select(-sorted_set)
+  select(-sorted_set) %>% 
+  mutate_all(as.integer)
 
 toc()
 toc()
@@ -250,23 +251,90 @@ toc()
 
 Now we have a unique row for each friend of a friend connection. We can use this to look up the original member's direct connections and the friend of friend's direct connections, and count the amount of matches. Key to this will be speed of lookup of the direct connections.
 
+### Benchmarking
+I should be using `microbenchmark` or similar package here, but `tictoc` should give us a good feel for the scale of the differences between lookup methods.
 ```{r members lookup benchmark}
 
 tic("Members lookup dplyr")
 members_df %>% 
-  filter(member_id == f_of_f_small_sample_df[1, ]$member_id)
+  filter(member_id == f_of_f_small_sample_df[10000, ]$member_id)
 toc()
 
 
 tic("Members lookup base")
-members_df[members_df$member_id == f_of_f_small_sample_df[1, ]$member_id, ]
+members_df[members_df$member_id == f_of_f_small_sample_df[10000, ]$member_id, ]
 toc()
 
 ```
 
-This is untenable for a large number of calculations. Let's try using the indexing feature from `data.table`.
+This kind of time could be a problem for a large number of calculations. Let's try using the indexing feature from `data.table`.
 
-```{r}
+```{r indexed data.table}
+tic("Use data.table")
+tic("Members convert to data.table")
+members_dt <- data.table::as.data.table(members_df)
+toc()
+tic("Add index")
+data.table::setkey(members_dt, member_id)
+toc()
+tic("Simple lookup")
+members_dt[member_id == f_of_f_small_sample_df[10000, ]$member_id]
+toc()
+toc()
 
 ```
 
+It seems we might be able to reduce the lookup time by roughly a factor of 2 over base or dplyr, a definitive answer would require better use of benchmarking tools to get a sample of lookups.
+
+### Calculating the Answer
+For now we have settled on using an indexed version of the members data frame, using data.table. We can use this method to efficiently lookup the friends from each member and from the friends of friends of member.
+```{r}
+tic("Count common connections per relationship")
+sum(members_dt[member_id == f_of_f_small_sample_df[10000, ]$member_id]$connected_member_id %in% members_dt[member_id == f_of_f_small_sample_df[10000, ]$friend_of_friend]$connected_member_id,
+    na.rm = TRUE)
+toc()
+```
+
+So for one set of lookups and calculation of common connections on the full indexed data.table it took about 0.04 seconds. This means the lookups for the small sample (100,000 members), we're looking at about 3 hours of calcuations. 2 lookups on an indexed table should scale as roughly O(log(n)), but this leaves us in trouble as we had 260k friend of a friend connections from 100k sample of members. The solution time could baloon in time and possibly memory when we bring in larger samples.
+
+```{r}
+paste((0.04 / 3600) * 260337, "hours")
+
+```
+
+## Industrialising the Solution
+```{r}
+f_of_f_small_sample <- ego(members_small_sample_graph, order = 2, mindist = 2, mode = "all")
+
+f_of_f_small_sample_df <- 
+  tibble(member_id = V(members_small_sample_graph)$name,
+         friend_of_friend = map(f_of_f_small_sample, function(x) x$name))
+
+f_of_f_small_sample_df <- unnest(f_of_f_small_sample_df, friend_of_friend)
+
+f_of_f_small_sample_df <-
+  f_of_f_small_sample_df %>% 
+  mutate(sorted_set = map2_chr(member_id, friend_of_friend, 
+                               function(x, y) paste(sort(c(x, y)), collapse = "")
+                           )
+         ) %>% 
+  distinct(sorted_set, .keep_all = TRUE) %>% 
+  select(-sorted_set) %>% 
+  mutate_all(as.integer)
+
+
+tic("Sample full calculation")
+f_of_f_small_sample_df <-
+  f_of_f_small_sample_df %>% 
+  mutate(count_common_connections = 
+           map2_int(member_id, friend_of_friend, calc_common_conns, members_dt))
+toc()
+
+calc_common_conns <- function(friend, f_of_f, member_conns) {
+  sum(member_conns[member_id == friend]$connected_member_id %in%
+        member_conns[member_id == f_of_f]$connected_member_id,
+    na.rm = TRUE)
+}
+
+
+```
