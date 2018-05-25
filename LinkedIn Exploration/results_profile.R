@@ -22,4 +22,4 @@ lm_predictions <- data.frame(
   t_calc_num_common_pred = predict(linear_model, newdata = data.frame(n = seq(0, 10e6, 10000)))
   )
 
-plot(lm_predictions)
+plot(lm_predictions[1:100,])
