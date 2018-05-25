@@ -2,6 +2,7 @@
 This is an analysis for a LinkedIn interview for a data science position. 
 
 The best answer I could get was:
+
 | member_id_1  | member_id_2  | Number of Common Connections  |
 | -----------------|:-----------------:| --------------------------------------:|
 | 99476             | 84644              | 163                                           |
