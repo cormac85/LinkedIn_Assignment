@@ -2,9 +2,9 @@ library(dplyr)
 library(purrr)
 library(data.table)
 
-run_poc <- function(sample_size) {
+run_poc <- function(sample_size, seed) {
 
-  set.seed(314)
+  set.seed(seed)
 
   #TODO: Fix this hack because I can't get the package to export properly!
   calc_common_conns <- function(member, f_of_f, member_conns) {
@@ -25,7 +25,7 @@ run_poc <- function(sample_size) {
     readr::read_csv("./linkedin_data/common_connection_200k.csv")
   members_df <- data.table::as.data.table(members_df)
   data.table::setkey(members_df, member_id)
-  members_sample_df <- sample_n(members_df, sample_size)
+  members_sample_df <- dplyr::sample_n(members_df, sample_size)
   members_sample_graph <- igraph::graph_from_data_frame(members_sample_df, directed = FALSE)
   timings$setup <- tictoc::toc()
 
@@ -67,3 +67,25 @@ run_poc <- function(sample_size) {
            arrange(count_common_connections) %>%
            top_n(10, count_common_connections))
 }
+
+# seeds <- sample(1:1000, 10, replace=TRUE) # 110 715 892 618 407 516  23 908 901 136
+
+runs_10_by_10k <-
+  data.frame(n = rep(10000, 10), results = NA, seed = seeds) %>%
+  mutate(results = map2(n, seed, run_poc))
+
+
+runs_2_by_500k <-
+  data.frame(n = rep(500000, 2), results = NA, seed = seeds[1:2]) %>%
+  mutate(results = map2(n, seed, run_poc))
+
+runs_5_by_100k <-
+  data.frame(n = rep(500000, 2), results = NA, seed = seeds[1:2])
+
+runs_5_by_100k$results[[1]] <-
+
+# ways of improving speed:
+# Try node based sampling (random walks perform well), rather than edge based sampling.
+# https://dl.acm.org/citation.cfm?id=1150479
+#
+#
