@@ -1,6 +1,14 @@
 # LinkedIn_Assignment
 This is an analysis for a LinkedIn interview for a data science position. 
 
+The best answer I could get was:
+| member_id_1  | member_id_2  | Number of Common Connections  |
+| -----------------|:-----------------:| --------------------------------------:|
+| 99476             | 84644              | 163                                           |
+
+The number of common connections is probably pessimistic, as this answer was taken from two random samples of  
+N = 500,000  relationships out of a total 10,000,000.
+
 ## Solution Overview
 The solution I'm using here is using R and has two broad steps with some details to follow. 
 
@@ -8,7 +16,7 @@ The solution I'm using here is using R and has two broad steps with some details
 2. For each unique relationship, compare a list of friends for both members of the relationship and count matches. 
 Use indexed data frames from the `data.tables` package.
 
-The solution can be seen under /LinkedIn Exploration/proof_of_concept.R
+The solution can be seen under /LinkedIn Exploration/get_common_connections.R
 
 ### Scaling
 Unfortunately this solution was not very fast and did not scale well on one machine, with this approach and using R. I made 
