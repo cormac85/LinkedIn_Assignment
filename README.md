@@ -26,9 +26,9 @@ it seems a full run could take several days and would probably require more memo
 
 Memory was an issue as both a table of edges, a table of results AND a very large list of graphs had to be generated. There 
 are certainly some optimisations (remove duplicate relationships, remove objects once used etc.) that could be made here
-but computation time is probably a larger issue.
+but computation time is probably a larger issue (memory is cheap!).
 
-Scaling the solution to 3rd or 4th degree friends of friends could be prohibitively expensive at this sort of scale. Again sampling would 
+Scaling the solution to 3rd or 4th degree friends of friends could be prohibitively expensive at this sort of size of dataset. Again sampling would 
 almost certainly be needed, as discussed in the next section.
 
 Bringing this solution to multiple machines could be done by sampling the network in some fashion and sending the different samples 
@@ -50,7 +50,8 @@ rather than the edge-based sampling that I have done here.
 ### Friends of Friends
 Although R is notoriously slow for larger datasets, I don't think there would be much performance to gain by switching to 
 Python for the friend of friend calculation since `igraph` is available in both languages and is based on the same C libraries.
-Some [benchmarking](https://graph-tool.skewed.de/performance) shows `igraph` in python performing very well in comparison to other graph analysis tools.
+Some [benchmarking](https://graph-tool.skewed.de/performance) shows `igraph` in python performing very well in comparison to other graph 
+analysis tools.
 
 ### Direct Friends Lookup
 The second part of the solution seemed to be "balooning" in time quite quickly as the number of sampled relatioships increased. I used 
