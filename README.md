@@ -50,8 +50,13 @@ Some [benchmarking](https://graph-tool.skewed.de/performance) shows `igraph` in 
 ### Direct Friends Lookup
 The second part of the solution seemed to be "balooning" in time quite quickly as the number of sampled relatioships increased. I used 
 `data.tables` package for this, with an added index. This is probably one of the fastest ways to do data filtering like this in R.
-Playing with the indexes might also help here, or using an external database for the queries (see next section). 
+A few things could be tried to speed things up: 
+
+1. Use an external database for the queries (see next section).
+2. Use a different language (Python or a custom C solution). 
+3. Modify the indexes on the lookup table.
 
 ### Graph Databases
 With the time frame involved I was not able to explore graph databases such as Neo4j to see if the naturally graph-based queries 
-could be done faster. Given the nature of the queries in the proposed solution it would be worth exploring this approach.
+could be done faster. Given the nature of the queries / calculations in the proposed solution it would be worth exploring this approach, ahead 
+of a standard relational database.
