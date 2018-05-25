@@ -14,6 +14,7 @@ get_common_connections <- function(sample_size, seed) {
         na.rm = TRUE)
   }
 
+  # Data import and setup
   members_df <-
     readr::read_csv("./linkedin_data/common_connection_200k.csv")
   members_df <- data.table::as.data.table(members_df)
@@ -21,11 +22,13 @@ get_common_connections <- function(sample_size, seed) {
   members_sample_df <- dplyr::sample_n(members_df, sample_size)
   members_sample_graph <- igraph::graph_from_data_frame(members_sample_df, directed = FALSE)
 
+  # Friends of friends calculation.
   friends_of_friends_df <-
     linkedinAssignment::convert_fof_igraph_to_df(members_sample_graph,
                                                  igraph::ego(members_sample_graph, order = 2,
                                                              mindist = 2, mode = "out"))
 
+  # Number of common connections calculation.
   friends_of_friends_df <-
     friends_of_friends_df %>%
     dplyr::mutate(count_common_connections =
