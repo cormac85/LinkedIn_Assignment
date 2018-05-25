@@ -12,7 +12,7 @@ N = 500,000  relationships out of a total 10,000,000.
 ## Solution Overview
 The solution I'm using here is using R and has two broad steps with some details to follow. 
 
-1. Calculate the friends of friends for each unique member_id in the dataset using the `igraph` package.
+1. Calculate the friends of friends (2nd degree only) for each unique member_id in the dataset using the `igraph` package.
 2. For each unique relationship, compare a list of friends for both members of the relationship and count matches. 
 Use indexed data frames from the `data.tables` package.
 
@@ -26,6 +26,9 @@ it seems a full run could take several days.
 Memory was an issue as both a table of edges, a table of results AND a very large list of graphs had to be generated. There 
 are certainly some optimisations (remove duplicate relationships, remove objects once used etc.) that could be made here
 but computation time is probably a larger issue.
+
+Scaling the solution to 3rd or 4th degree friends of friends could be prohibitively expensive at this sort of scale. Again sampling would 
+almost certainly be needed, as discussed in the next section.
 
 ### Solution With Sampling 
 The memory and computational constraints forced me to us multiple samples to approach an approximate solution. The sampling 
