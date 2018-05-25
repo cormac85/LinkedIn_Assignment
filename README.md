@@ -9,7 +9,7 @@ The best answer I could get was:
 
 The number of common connections is probably pessimistic, as this answer was taken from two random samples of  
 N = 500,000  relationships out of a total 10,000,000. The relationship with the highest number of connections was identical for 
-both runs with the top 10 being largely in agreement, with a few positions swapped.
+both samples with the top 10 being largely in agreement, with a few positions swapped.
 
 ## Solution Overview
 The solution here uses R and has two broad steps with some details to follow. 
