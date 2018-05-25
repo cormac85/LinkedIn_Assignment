@@ -10,7 +10,10 @@
 #'
 #' @examples
 calc_num_common_conns <- function(member, f_of_f, member_conns) {
-  sum(member_conns[member_id == member]$connected_member_id %in%
-        member_conns[member_id == f_of_f]$connected_member_id,
-      na.rm = TRUE)
+  sum(
+    c(member_conns[member_conns$member_id == member, ]$connected_member_id,
+      member_conns[member_conns$connected_member_id == member, ]$member_id) %in%
+      c(member_conns[member_conns$member_id == f_of_f, ]$connected_member_id,
+        member_conns[member_conns$connected_member_id == f_of_f, ]$member_id),
+    na.rm = TRUE)
 }

@@ -7,12 +7,6 @@ get_common_connections <- function(sample_size, seed) {
 
   set.seed(seed)
 
-  #TODO: Add this function to package, I can't get the package to export it properly!
-  calc_common_conns <- function(member, f_of_f, member_conns) {
-    sum(member_conns[member_id == member]$connected_member_id %in%
-          member_conns[member_id == f_of_f]$connected_member_id,
-        na.rm = TRUE)
-  }
 
   # Data import and setup
   members_df <-
@@ -23,6 +17,7 @@ get_common_connections <- function(sample_size, seed) {
   members_sample_graph <- igraph::graph_from_data_frame(members_sample_df, directed = FALSE)
 
   # Friends of friends calculation.
+  # Calculating the relationship going "out" or "in" shouldn't affect result.
   friends_of_friends_df <-
     linkedinAssignment::convert_fof_igraph_to_df(members_sample_graph,
                                                  igraph::ego(members_sample_graph, order = 2,
@@ -33,7 +28,7 @@ get_common_connections <- function(sample_size, seed) {
     friends_of_friends_df %>%
     dplyr::mutate(count_common_connections =
                     purrr::map2_int(member_id, friend_of_friend,
-                                    calc_common_conns, members_df))
+                                    linkedinAssignment::calc_num_common_conns, members_df))
 
   return(friends_of_friends_df %>%
            arrange(count_common_connections) %>%
