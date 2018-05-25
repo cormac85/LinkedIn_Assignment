@@ -82,10 +82,10 @@ runs_2_by_500k <-
 runs_5_by_100k <-
   data.frame(n = rep(500000, 2), results = NA, seed = seeds[1:2])
 
-runs_5_by_100k$results[[1]] <-
+# loops in R can cause memory issues:
+runs_5_by_100k$results[1] <- list(run_poc(100000, seeds[1]))
+runs_5_by_100k$results[2] <- list(run_poc(100000, seeds[2]))
+runs_5_by_100k$results[3] <- list(run_poc(100000, seeds[3]))
+runs_5_by_100k$results[4] <- list(run_poc(100000, seeds[4]))
+runs_5_by_100k$results[5] <- list(run_poc(100000, seeds[5]))
 
-# ways of improving speed:
-# Try node based sampling (random walks perform well), rather than edge based sampling.
-# https://dl.acm.org/citation.cfm?id=1150479
-#
-#

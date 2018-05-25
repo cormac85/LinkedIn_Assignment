@@ -49,6 +49,5 @@ The second part of the solution seemed to be "balooning" in time quite quickly a
 Playing with the indexes might also help here, or using an external database for the queries (see next section). 
 
 ### Graph Databases
-With the time frame involved I was not able to explore graph databases such as Neo4j to see if naturally graph-based queries 
-could be done faster. Given the nature of the queries it would be worth exploring this for both of the main steps in 
-the proposed solution. 
+With the time frame involved I was not able to explore graph databases such as Neo4j to see if the naturally graph-based queries 
+could be done faster. Given the nature of the queries in the proposed solution it would be worth exploring this approach.
