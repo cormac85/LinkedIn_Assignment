@@ -80,7 +80,7 @@ runs_2_by_500k <-
   mutate(results = map2(n, seed, run_poc))
 
 runs_5_by_100k <-
-  data.frame(n = rep(500000, 2), results = NA, seed = seeds[1:2])
+  data.frame(n = rep(500000, 5), results = NA, seed = seeds[1:5])
 
 # loops in R can cause memory issues:
 runs_5_by_100k$results[1] <- list(run_poc(100000, seeds[1]))
