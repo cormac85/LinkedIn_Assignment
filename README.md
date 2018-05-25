@@ -17,7 +17,7 @@ The solution here uses R and has two broad steps with some details to follow.
 1. Calculate the friends of friends (2nd degree only) for each unique member_id in the dataset using the `igraph` package.
 2. For each unique relationship, compare the list of direct friends for both members of the friend-of-friend relationship and count matches. 
 
-The solution can be seen under /LinkedIn Exploration/get_common_connections.R
+The solution can be seen under /LinkedIn Exploration/get_common_connections.R. It uses some functions I made under the package `linkedinAssignment`.
 
 ### Scaling
 Unfortunately this solution was not very fast and did not scale well on one machine, with this approach and using R. I made 
