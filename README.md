@@ -8,21 +8,21 @@ The best answer I could get was:
 | 99476             | 84644              | 163                                           |
 
 The number of common connections is probably pessimistic, as this answer was taken from two random samples of  
-N = 500,000  relationships out of a total 10,000,000.
+N = 500,000  relationships out of a total 10,000,000. The relationship with the highest number of connections was identical for 
+both runs with the top 10 being largely in agreement, with a few positions swapped.
 
 ## Solution Overview
-The solution I'm using here is using R and has two broad steps with some details to follow. 
+The solution here uses R and has two broad steps with some details to follow. 
 
 1. Calculate the friends of friends (2nd degree only) for each unique member_id in the dataset using the `igraph` package.
-2. For each unique relationship, compare a list of friends for both members of the relationship and count matches. 
-Use indexed data frames from the `data.tables` package.
+2. For each unique relationship, compare the list of direct friends for both members of the friend-of-friend relationship and count matches. 
 
 The solution can be seen under /LinkedIn Exploration/get_common_connections.R
 
 ### Scaling
 Unfortunately this solution was not very fast and did not scale well on one machine, with this approach and using R. I made 
 some estimates of time it would take using a linear model (see /LinkedIn Exploration/lm_predictions, time in seconds), 
-it seems a full run could take several days.
+it seems a full run could take several days and would probably require more memory than I have available.
 
 Memory was an issue as both a table of edges, a table of results AND a very large list of graphs had to be generated. There 
 are certainly some optimisations (remove duplicate relationships, remove objects once used etc.) that could be made here
@@ -30,6 +30,11 @@ but computation time is probably a larger issue.
 
 Scaling the solution to 3rd or 4th degree friends of friends could be prohibitively expensive at this sort of scale. Again sampling would 
 almost certainly be needed, as discussed in the next section.
+
+Bringing this solution to multiple machines could be done by sampling the network in some fashion and sending the different samples 
+to different machines to be processed. I suspect a certain miminum sample size (as a percentage of the full network) would need to be sent to 
+each machine in order to reduce variance in the answer from each sample. Once the answers return from each machine they could be easily 
+aggregated in some way to reach a consensus result.
 
 ### Solution With Sampling 
 The memory and computational constraints forced me to us multiple samples to approach an approximate solution. The sampling 
@@ -60,3 +65,24 @@ A few things could be tried to speed things up:
 With the time frame involved I was not able to explore graph databases such as Neo4j to see if the naturally graph-based queries 
 could be done faster. Given the nature of the queries / calculations in the proposed solution it would be worth exploring this approach, ahead 
 of a standard relational database.
+
+## Notes
+
+1. Initial exploration of various solutions I tried are kept in /LinkedIn Exploration/LinkedIn Exploration.Rmd. You can take a look if you like but be warned that 
+it is very much a living document and is not formatted for public consumption, and may not even run without errors! 
+2. This is an example of the output from get_common_connections.R for one of the runs with N = 500,000:
+
+| member_id| friend_of_friend| count_common_connections|
+|---------:|----------------:|------------------------:|
+|    190658|            67890|                      139|
+|     65612|            67890|                      139|
+|    107795|            67890|                      141|
+|     27370|            33008|                      142|
+|    190658|            65612|                      143|
+|     27370|            67890|                      144|
+|     33008|            65612|                      145|
+|    190658|           107795|                      146|
+|     33008|           107795|                      147|
+|     84644|            99476|                      163|
+
+3. The code is organised in a package but I have not had time to fully industrialise it, install the package to your machine at your own risk!
